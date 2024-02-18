@@ -152,6 +152,32 @@ async function run() {
           .json({ success: false, message: "Failed to update supply" });
       }
     });
+    app.get("/api/v1/supplies/statistics", async (req, res) => {
+      const pipeline = [
+        {
+          $group: {
+            _id: "$category",
+            totalDonation: { $sum: "$amount" },
+            totalItem: { $sum: 1 },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalDonationSum: { $sum: "$totalDonation" },
+            statistics: { $push: "$$ROOT" },
+          },
+        },
+      ];
+
+      const result = await supplyCollection.aggregate(pipeline).toArray();
+      const statisticsInfo = {
+        totalDonationSum: result[0].totalDonationSum,
+        statistics: result[0].statistics,
+      };
+
+      res.json(statisticsInfo);
+    });
 
     // ==============================================================
 
