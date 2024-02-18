@@ -108,10 +108,25 @@ async function run() {
         result,
       });
     });
-    app.delete("/api/v1/supplies/:id", async (req, res) => {
+    app.get("/api/v1/supplies/:id", async (req, res) => {
       // find into the database
       const id = req.params.id;
       console.log(id);
+
+      const result = await supplyCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Supply fetched successfully",
+        result,
+      });
+    });
+    app.delete("/api/v1/supplies/:id", async (req, res) => {
+      // find into the database
+      const id = req.params.id;
+
       const result = await supplyCollection.findOneAndDelete({
         _id: new ObjectId(id),
       });
@@ -152,31 +167,63 @@ async function run() {
           .json({ success: false, message: "Failed to update supply" });
       }
     });
-    app.get("/api/v1/supplies/statistics", async (req, res) => {
-      const pipeline = [
-        {
-          $group: {
-            _id: "$category",
-            totalDonation: { $sum: "$amount" },
-            totalItem: { $sum: 1 },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            totalDonationSum: { $sum: "$totalDonation" },
-            statistics: { $push: "$$ROOT" },
-          },
-        },
-      ];
 
-      const result = await supplyCollection.aggregate(pipeline).toArray();
-      const statisticsInfo = {
-        totalDonationSum: result[0].totalDonationSum,
-        statistics: result[0].statistics,
-      };
+    //   try {
+    //     const pipeline = [
+    //       {
+    //         $group: {
+    //           _id: "$category",
+    //           totalDonation: { $sum: "$amount" },
+    //           totalItem: { $sum: 1 },
+    //         },
+    //       },
+    //       {
+    //         $group: {
+    //           _id: null,
+    //           totalDonationSum: { $sum: "$totalDonation" },
+    //           statistics: { $push: "$$ROOT" },
+    //         },
+    //       },
+    //     ];
 
-      res.json(statisticsInfo);
+    //     const result = await supplyCollection.aggregate(pipeline).toArray();
+    //     const statisticsInfo = {
+    //       totalDonationSum: result[0].totalDonationSum,
+    //       statistics: result[0].statistics,
+    //     };
+    //     res.json(statisticsInfo);
+    //   } catch (error) {
+    //     console.log(error);
+    //   }
+    // });
+    app.get("/api/v1/statistics", async (req, res) => {
+      try {
+        const pipeline = [
+          {
+            $group: {
+              _id: "$category",
+              totalDonation: { $sum: "$amount" },
+              totalItem: { $sum: 1 },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalDonationSum: { $sum: "$totalDonation" },
+              statistics: { $push: "$$ROOT" },
+            },
+          },
+        ];
+
+        const result = await supplyCollection.aggregate(pipeline).toArray();
+        const statisticsInfo = {
+          totalDonationSum: result[0]?.totalDonationSum,
+          statistics: result[0]?.statistics,
+        };
+        res.json(statisticsInfo);
+      } catch (error) {
+        console.log(error);
+      }
     });
 
     // ==============================================================
