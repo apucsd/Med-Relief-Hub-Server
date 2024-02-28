@@ -29,6 +29,8 @@ async function run() {
     const userCollection = db.collection("users");
     const supplyCollection = db.collection("supplies");
     const commentCollection = db.collection("comments");
+    const testimonialCollection = db.collection("testimonials");
+    const volunteerCollection = db.collection("volunteers");
 
     // User Registration
 
@@ -259,8 +261,55 @@ async function run() {
         result,
       });
     });
-    // ==============================================================
 
+    //testimonial routes
+    app.post("/api/v1/testimonial", async (req, res) => {
+      const testimonial = req.body;
+
+      // Insert user into the database
+      const result = await testimonialCollection.insertOne(testimonial);
+
+      res.status(201).json({
+        success: true,
+        message: "testimonial added successfully",
+        result,
+      });
+    });
+    app.get("/api/v1/testimonial", async (req, res) => {
+      // find into the database
+      const result = await testimonialCollection.find().toArray();
+
+      res.status(201).json({
+        success: true,
+        message: "testimonial fetched successfully",
+        result,
+      });
+    });
+    // ==============================================================
+    //volunteer routes
+    app.post("/api/v1/volunteer", async (req, res) => {
+      const volunteer = req.body;
+
+      // Insert user into the database
+      const result = await volunteerCollection.insertOne(volunteer);
+
+      res.status(201).json({
+        success: true,
+        message: "volunteer added successfully",
+        result,
+      });
+    });
+
+    app.get("/api/v1/volunteer", async (req, res) => {
+      // find into the database
+      const result = await volunteerCollection.find().toArray();
+
+      res.status(201).json({
+        success: true,
+        message: "volunteer fetched successfully",
+        result,
+      });
+    });
     // Start the server
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);
