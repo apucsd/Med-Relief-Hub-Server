@@ -28,6 +28,7 @@ async function run() {
     const db = client.db("med-relief-hub");
     const userCollection = db.collection("users");
     const supplyCollection = db.collection("supplies");
+    const commentCollection = db.collection("comments");
 
     // User Registration
 
@@ -225,7 +226,39 @@ async function run() {
         console.log(error);
       }
     });
+    //comments section
+    app.post("/api/v1/comments", async (req, res) => {
+      const { comments, email } = req.body;
+      const userData = await userCollection.findOne({ email });
+      const currentDateTime = new Date().toLocaleString();
+      const newComments = {
+        email,
+        commenterName: userData.name,
+        comments,
+        commenterImage: userData?.image,
+        timestamp: currentDateTime,
+      };
+      // Insert comments into the database
+      const result = await commentCollection.insertOne(newComments);
 
+      res.status(201).json({
+        success: true,
+        message: "comments added successfully",
+        result,
+      });
+    });
+
+    //get comments
+    app.get("/api/v1/comments", async (req, res) => {
+      // find into the database
+      const result = await commentCollection.find().toArray();
+
+      res.status(201).json({
+        success: true,
+        message: "Comments fetched successfully",
+        result,
+      });
+    });
     // ==============================================================
 
     // Start the server
