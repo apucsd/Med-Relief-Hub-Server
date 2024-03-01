@@ -57,6 +57,62 @@ async function run() {
         message: "User registered successfully",
       });
     });
+    app.patch("/api/v1/update-user/:email", async (req, res) => {
+      const { email } = req.params;
+      const updatedBody = req.body;
+
+      try {
+        // Update the user with the new data
+        const updatedUser = await userCollection.findOneAndUpdate(
+          { email },
+          { $set: updatedBody },
+          { returnOriginal: false } // Return the modified document
+        );
+
+        if (updatedBody.image) {
+          await commentCollection.findOneAndUpdate(
+            { email },
+            { $set: updatedBody },
+            { returnOriginal: false } // Return the modified document
+          );
+        }
+
+        res.status(200).json({
+          success: true,
+          message: "User updated successfully",
+          data: updatedUser?.value, // Send the updated user data in the response
+        });
+      } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).json({
+          success: false,
+          message: "Internal Server Error",
+        });
+      }
+    });
+    app.get("/api/v1/update-user/:email", async (req, res) => {
+      const { email } = req.params;
+
+      try {
+        // Update the user with the new data
+        const result = await userCollection.findOne(
+          { email },
+          { projection: { password: 0 } }
+        );
+
+        res.status(200).json({
+          success: true,
+          message: "User fetched successfully",
+          data: result, // Send the updated user data in the response
+        });
+      } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).json({
+          success: false,
+          message: "Internal Server Error",
+        });
+      }
+    });
 
     // User Login
     app.post("/api/v1/login", async (req, res) => {
