@@ -366,7 +366,7 @@ async function run() {
         result,
       });
     });
-    // Start the server
+    // Start the servers
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);
     });
