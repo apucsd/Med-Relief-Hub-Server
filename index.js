@@ -391,9 +391,9 @@ async function run() {
         total_amount: amount,
         currency: "BDT",
         tran_id: transactionId, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payment/success/${transactionId}`,
-        fail_url: `http://localhost:5000/payment/fail/${transactionId}`,
-        cancel_url: `http://localhost:5000/payment/fail/${transactionId}`,
+        success_url: `https://medi-relief-hub.vercel.app/payment/success/${transactionId}`,
+        fail_url: `https://medi-relief-hub.vercel.app/payment/fail/${transactionId}`,
+        cancel_url: `https://medi-relief-hub.vercel.app/payment/fail/${transactionId}`,
         ipn_url: "http://localhost:3030/ipn",
         shipping_method: "Courier",
         product_name: "Computer.",
@@ -430,7 +430,7 @@ async function run() {
           paidStatus: false,
         };
         const result = await donationCollection.insertOne(donationDetails);
-        console.log("Redirecting to: ", GatewayPageURL);
+
         app.post("/payment/success/:transactionId", async (req, res) => {
           const transactionId = req.params.transactionId;
           const result = await donationCollection.updateOne(
@@ -443,7 +443,7 @@ async function run() {
           );
           if (result?.modifiedCount > 0) {
             res.redirect(
-              `http://localhost:5173/donate/success/${transactionId}`
+              `https://med-relief-hub.vercel.app/donate/success/${transactionId}`
             );
           }
         });
@@ -451,7 +451,9 @@ async function run() {
           const transactionId = req.params.transactionId;
           const result = await donationCollection.deleteOne({ transactionId });
           if (result?.deletedCount > 0) {
-            res.redirect(`http://localhost:5173/donate/fail/${transactionId}`);
+            res.redirect(
+              `https://med-relief-hub.vercel.app/donate/fail/${transactionId}`
+            );
           }
         });
       });
