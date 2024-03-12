@@ -1,12 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
+const SSLCommerzPayment = require("sslcommerz-lts");
 const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+//ssl commerz configuration
+const store_id = process.env.SSLCOMMERZ_STORE_ID;
+const store_passwd = process.env.SSLCOMMERZ_STORE_API_PASSWORD;
+const is_live = false; //true for live, false for sandbox
 
 // Middleware
 app.use(cors());
@@ -31,6 +37,7 @@ async function run() {
     const commentCollection = db.collection("comments");
     const testimonialCollection = db.collection("testimonials");
     const volunteerCollection = db.collection("volunteers");
+    const donationCollection = db.collection("donations");
 
     // User Registration
 
@@ -170,7 +177,6 @@ async function run() {
     app.get("/api/v1/supplies/:id", async (req, res) => {
       // find into the database
       const id = req.params.id;
-      console.log(id);
 
       const result = await supplyCollection.findOne({
         _id: new ObjectId(id),
@@ -363,6 +369,101 @@ async function run() {
       res.status(201).json({
         success: true,
         message: "volunteer fetched successfully",
+        result,
+      });
+    });
+
+    // donation routes
+    app.post("/api/v1/donation", async (req, res) => {
+      const { email, amount, supplyId } = req.body;
+
+      // Insert user into the database
+      const userInfo = await userCollection.findOne({ email });
+      const supplyInfo = await supplyCollection.findOne({
+        _id: new ObjectId(supplyId),
+      });
+      // console.log(res);
+      const transactionId = Math.random()
+        .toString(36)
+        .substring(2, 11)
+        .toUpperCase();
+      const data = {
+        total_amount: amount,
+        currency: "BDT",
+        tran_id: transactionId, // use unique tran_id for each api call
+        success_url: `http://localhost:5000/payment/success/${transactionId}`,
+        fail_url: `http://localhost:5000/payment/fail/${transactionId}`,
+        cancel_url: `http://localhost:5000/payment/fail/${transactionId}`,
+        ipn_url: "http://localhost:3030/ipn",
+        shipping_method: "Courier",
+        product_name: "Computer.",
+        product_category: "Electronic",
+        product_profile: "general",
+        cus_name: "Customer Name",
+        cus_email: "customer@example.com",
+        cus_add1: "Dhaka",
+        cus_add2: "Dhaka",
+        cus_city: "Dhaka",
+        cus_state: "Dhaka",
+        cus_postcode: "1000",
+        cus_country: "Bangladesh",
+        cus_phone: "01711111111",
+        cus_fax: "01711111111",
+        ship_name: "Customer Name",
+        ship_add1: "Dhaka",
+        ship_add2: "Dhaka",
+        ship_city: "Dhaka",
+        ship_state: "Dhaka",
+        ship_postcode: 1000,
+        ship_country: "Bangladesh",
+      };
+      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+      sslcz.init(data).then(async (apiResponse) => {
+        // Redirect the user to payment gateway
+        let GatewayPageURL = apiResponse.GatewayPageURL;
+        res.send({ url: GatewayPageURL });
+
+        const donationDetails = {
+          user: userInfo,
+          supply: supplyInfo,
+          transactionId,
+          paidStatus: false,
+        };
+        const result = await donationCollection.insertOne(donationDetails);
+        console.log("Redirecting to: ", GatewayPageURL);
+        app.post("/payment/success/:transactionId", async (req, res) => {
+          const transactionId = req.params.transactionId;
+          const result = await donationCollection.updateOne(
+            { transactionId },
+            {
+              $set: {
+                paidStatus: true,
+              },
+            }
+          );
+          if (result?.modifiedCount > 0) {
+            res.redirect(
+              `http://localhost:5173/donate/success/${transactionId}`
+            );
+          }
+        });
+        app.post("/payment/fail/:transactionId", async (req, res) => {
+          const transactionId = req.params.transactionId;
+          const result = await donationCollection.deleteOne({ transactionId });
+          if (result?.deletedCount > 0) {
+            res.redirect(`http://localhost:5173/donate/fail/${transactionId}`);
+          }
+        });
+      });
+    });
+
+    app.get("/api/v1/donation/:transactionId", async (req, res) => {
+      const transactionId = req.params.transactionId;
+      console.log(transactionId);
+      const result = await donationCollection.findOne({ transactionId });
+      res.status(200).json({
+        success: true,
+        message: "Single donation fetched successfully",
         result,
       });
     });
